@@ -1,0 +1,11 @@
+version: axhub/v1
+name: law-chatbot
+runtime:
+  port: 8080
+  health_path: /
+build:
+  dockerfile: Dockerfile
+  deploy_method: docker
+env:
+  required:
+    - name: AXROUTER_API_KEY

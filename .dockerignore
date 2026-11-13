@@ -1,0 +1,9 @@
+.env
+.cache/
+.git/
+__pycache__/
+tests/
+tests_app/
+docs/
+eval/
+regs/

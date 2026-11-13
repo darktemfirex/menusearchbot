@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>법령 챗봇</title>
+<style>
+  :root {
+    --bg: #f4f0ff; --ink: #2b2250; --purple: #7c4dff; --purple-dark: #5b34d6;
+    --mint: #d9f7ec; --mint-ink: #0f6b4f; --pink: #ff5fa2; --pink-bg: #fff0f7;
+    --sky: #e3f1ff; --sky-ink: #1d5fa8; --card: #ffffff; --line: #e0d8ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; }
+  .app { max-width: 760px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; padding: 0 16px; }
+  header { padding: 22px 0 8px; }
+  header h1 { margin: 0; font-size: 26px; letter-spacing: -0.5px; }
+  header p { margin: 4px 0 0; color: #6a5fa0; font-size: 14px; }
+  #chat { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 12px 0 20px; }
+  .row { display: flex; scroll-margin-bottom: 150px; }  /* 자동 스크롤 때 아래 입력창에 가리지 않게 */
+  .row.me { justify-content: flex-end; }
+  .bubble { max-width: 82%; padding: 12px 16px; border-radius: 20px; line-height: 1.6; font-size: 16px;
+            white-space: pre-wrap; word-break: keep-all; }
+  .me .bubble { background: var(--purple); color: #fff; border-bottom-right-radius: 6px; }
+  .bot .bubble { background: var(--card); border: 2px solid var(--line); border-bottom-left-radius: 6px; }
+  .stickers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .sticker { display: inline-block; background: var(--mint); color: var(--mint-ink); border-radius: 12px;
+             padding: 6px 10px; font-size: 13px; font-weight: 700; transform: rotate(-1.5deg);
+             box-shadow: 2px 2px 0 rgba(15, 107, 79, .25); }
+  .sticker:nth-child(even) { transform: rotate(1.5deg); }
+  .sticker small { display: block; font-weight: 400; opacity: .85; }
+  .pending { display: inline-block; margin-top: 4px; background: var(--sky); color: var(--sky-ink);
+             border-radius: 8px; padding: 2px 7px; font-size: 12px; font-weight: 700; }
+  .withheld { background: var(--pink-bg); border: 2px dashed var(--pink); border-radius: 20px;
+              padding: 14px 18px; max-width: 82%; }
+  .withheld b { color: #c2185b; font-size: 17px; }
+  .withheld p { margin: 6px 0 0; font-size: 14px; color: #7a3a58; }
+  .error { background: var(--pink-bg); border: 2px dashed var(--pink); color: #c2185b; border-radius: 20px; padding: 12px 16px; }
+  .loading span { display: inline-block; width: 9px; height: 9px; margin: 0 3px; border-radius: 50%;
+                  background: var(--purple); animation: bounce 1s infinite ease-in-out; }
+  .loading span:nth-child(2) { animation-delay: .15s; }
+  .loading span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); opacity: .4 } 40% { transform: translateY(-7px); opacity: 1 } }
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 10px; }
+  .examples button { border: 2px solid var(--purple); background: #fff; color: var(--purple-dark); border-radius: 999px;
+                     padding: 8px 14px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .examples button:hover { background: var(--purple); color: #fff; }
+  form { position: sticky; bottom: 0; display: flex; gap: 8px; padding: 10px 0 18px; background: var(--bg); }
+  input[type=text] { flex: 1; border: 2px solid var(--line); border-radius: 999px; padding: 13px 18px; font-size: 16px;
+                     outline: none; background: #fff; color: var(--ink); }
+  input[type=text]:focus { border-color: var(--purple); }
+  #send { border: 0; background: var(--purple); color: #fff; border-radius: 999px; padding: 0 22px; font-size: 16px;
+          font-weight: 700; cursor: pointer; }
+  #send:disabled { background: #b9a8f5; cursor: default; }
+  .note { text-align: center; font-size: 12px; color: #8b82b8; padding-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>법령 챗봇</h1>
+    <p>근로기준법 · 남녀고용평등법 · 전자금융거래법 · 개인정보보호법에 있는 내용만, 근거 조항과 함께 답해요.</p>
+  </header>
+  <div id="chat"></div>
+  <div class="examples" id="examples"></div>
+  <form id="form" autocomplete="off">
+    <input type="text" id="input" placeholder="궁금한 점을 물어보세요" maxlength="500">
+    <button type="submit" id="send">보내기</button>
+  </form>
+  <div class="note">법률 자문이 아니에요. 참고용으로만 봐 주세요.</div>
+</div>
+<script>
+const EXAMPLES = ["육아휴직 1~2주만 쓸 수 있나요?", "난임치료휴가는 며칠이고 그중 며칠이 유급인가요?", "올해 최저임금은?"];
+const chat = document.getElementById("chat");
+const form = document.getElementById("form");
+const input = document.getElementById("input");
+const send = document.getElementById("send");
+const history = [];   // [{question, result}] — 탭을 닫으면 사라진다
+let busy = false;
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;   // 글은 항상 textContent 로(HTML로 해석하지 않음)
+  return e;
+}
+function add(node) { chat.appendChild(node); node.scrollIntoView({ block: "end", behavior: "smooth" }); return node; }
+
+function userBubble(text) {
+  const row = el("div", "row me"); row.appendChild(el("div", "bubble", text)); add(row);
+}
+function loadingBubble() {
+  const row = el("div", "row bot loading");
+  const b = el("div", "bubble");
+  for (let i = 0; i < 3; i++) b.appendChild(el("span"));
+  row.appendChild(b); return add(row);
+}
+function errorBubble(text) {
+  const row = el("div", "row bot"); row.appendChild(el("div", "error", text)); add(row);
+}
+function resultBubble(r) {
+  const row = el("div", "row bot");
+  if (r.kind === "withheld") {
+    const card = el("div", "withheld");
+    card.appendChild(el("b", null, "답변 보류"));
+    card.appendChild(el("p", null, "제가 가진 법령(4개) 안에서는 이 질문에 답하는 조항을 찾지 못했어요."));
+    row.appendChild(card);
+  } else {
+    const b = el("div", "bubble");
+    b.appendChild(el("div", null, r.text));
+    const wrap = el("div", "stickers");
+    for (const s of r.sources) {                       // 출처는 서버(코드)가 붙여서 보낸 그대로 보여 준다
+      const st = el("div", "sticker", `${s.article} ${s.title}`);
+      st.appendChild(el("small", null, s.law));
+      if (s.pending) {
+        st.appendChild(el("span", "pending", `${s.pending_dates.join(", ")} 시행 예정`));
+      }
+      wrap.appendChild(st);
+    }
+    b.appendChild(wrap); row.appendChild(b);
+  }
+  add(row);
+}
+
+async function ask(q) {
+  q = q.trim();
+  if (!q) return;                // 빈 입력·공백만 입력은 보내지 않는다
+  if (busy) return;
+  busy = true; send.disabled = true; input.value = "";
+  userBubble(q);
+  const wait = loadingBubble();
+  try {
+    const res = await fetch("/api/ask", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: q, history: history.slice(-3) }),
+    });
+    const data = await res.json();
+    wait.remove();
+    if (!res.ok) { errorBubble(data.error || "잠시 후 다시 시도해 주세요"); }
+    else { resultBubble(data); history.push({ question: q, result: data }); }
+  } catch (e) {
+    wait.remove(); errorBubble("잠시 후 다시 시도해 주세요");
+  } finally {
+    busy = false; send.disabled = false; input.focus();
+  }
+}
+
+form.addEventListener("submit", (ev) => { ev.preventDefault(); ask(input.value); });
+for (const q of EXAMPLES) {
+  const b = el("button", null, q); b.type = "button";
+  b.addEventListener("click", () => ask(q));
+  document.getElementById("examples").appendChild(b);
+}
+</script>
+</body>
+</html>
