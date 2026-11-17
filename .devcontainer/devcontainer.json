@@ -1,0 +1,13 @@
+{
+  "name": "메뉴찾기 봇",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "forwardPorts": [8765],
+  "portsAttributes": {
+    "8765": { "label": "메뉴찾기 봇", "onAutoForward": "openBrowser" }
+  },
+  "remoteEnv": { "PYTHONUTF8": "1" },
+  "postAttachCommand": "nohup python3 tools/server.py > /tmp/menusearchbot.log 2>&1 &",
+  "customizations": {
+    "vscode": { "extensions": ["ms-python.python"] }
+  }
+}
