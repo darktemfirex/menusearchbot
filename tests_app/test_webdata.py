@@ -36,5 +36,24 @@ class WebData(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(WEB, "search.js")))
 
 
+
+
+class InstallButton(unittest.TestCase):
+    def setUp(self):
+        with open(os.path.join(WEB, "index.html"), encoding="utf-8") as f:
+            self.html = f.read()
+
+    def test_앱_설치_버튼과_설치_이벤트를_처리한다(self):
+        self.assertIn('id="install"', self.html)
+        self.assertIn("beforeinstallprompt", self.html)
+        self.assertIn("appinstalled", self.html)
+
+    def test_이미_설치된_앱_화면에서는_버튼을_숨긴다(self):
+        self.assertIn("display-mode: standalone", self.html)
+
+    def test_iOS는_설치_방법을_안내한다(self):
+        self.assertIn("홈 화면에 추가", self.html)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

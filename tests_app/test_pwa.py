@@ -60,7 +60,8 @@ class PwaRoutes(unittest.TestCase):
 
     def test_PWA_파일이_알맞은_형식으로_나간다(self):
         for path, ctype in [("/manifest.webmanifest", "application/manifest+json"), ("/sw.js", "javascript"),
-                            ("/icon-192.png", "image/png"), ("/icon-512.png", "image/png")]:
+                            ("/icon-192.png", "image/png"), ("/icon-512.png", "image/png"),
+                            ("/search.js", "javascript"), ("/data.json", "application/json")]:
             r = self.get(path)
             self.assertEqual(r.status, 200, path)
             self.assertIn(ctype, r.headers["Content-Type"], path)

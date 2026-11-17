@@ -20,6 +20,8 @@ ERROR_TEXT = "잠시 후 다시 시도해 주세요"
 STATIC = {  # PWA(설치형 웹앱) 파일: 경로 → Content-Type
     "/manifest.webmanifest": "application/manifest+json; charset=utf-8",
     "/sw.js": "text/javascript; charset=utf-8",
+    "/search.js": "text/javascript; charset=utf-8",
+    "/data.json": "application/json; charset=utf-8",
     "/icon-192.png": "image/png",
     "/icon-512.png": "image/png",
 }
