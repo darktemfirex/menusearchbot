@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 WORKDIR /app
 COPY tools/ tools/
-COPY laws/ laws/
+COPY data/ data/
 COPY store/ store/
 ENV PYTHONUNBUFFERED=1 PYTHONUTF8=1
 EXPOSE 8080

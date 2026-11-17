@@ -1,4 +1,4 @@
-"""법령 챗봇 로컬 웹 서버(127.0.0.1 전용).
+"""메뉴찾기 봇 로컬 웹 서버(127.0.0.1 전용).
 
 사용:  python3 tools/server.py      → 브라우저가 열린다 (http://127.0.0.1:8765)
 키는 서버 안에서만 쓰고 화면·로그로 내보내지 않는다.
@@ -17,6 +17,12 @@ from index import STORE  # noqa: E402
 WEB = os.path.join(LAB, "tools", "web")
 HOST, PORT = "127.0.0.1", 8765
 ERROR_TEXT = "잠시 후 다시 시도해 주세요"
+STATIC = {  # PWA(설치형 웹앱) 파일: 경로 → Content-Type
+    "/manifest.webmanifest": "application/manifest+json; charset=utf-8",
+    "/sw.js": "text/javascript; charset=utf-8",
+    "/icon-192.png": "image/png",
+    "/icon-512.png": "image/png",
+}
 
 
 def load_key_or_none():
@@ -35,7 +41,7 @@ def startup_problem(key, store_exists):
     if not store_exists:
         return "store/index.json 이 없습니다. 먼저 python3 tools/index.py 를 실행해 주세요."
     if not key:
-        return "키가 없습니다. 실습 폴더 .env 에 AXROUTER_API_KEY=... 를 넣어 주세요."
+        return "키가 없습니다. 프로젝트 폴더 .env 에 AXROUTER_API_KEY=... 를 넣어 주세요."
     return None
 
 
@@ -58,10 +64,17 @@ def make_server(answer_fn, port=PORT, host=HOST):
             self.wfile.write(data)
 
         def do_GET(self):
-            if self.path.split("?")[0] not in ("/", "/index.html"):
+            path = self.path.split("?")[0]
+            if path in ("/", "/index.html"):
+                name = "index.html"
+            elif path in STATIC:  # PWA 파일만 이름을 정해 둔 것에서 내보낸다(임의 경로 접근 불가)
+                name = path.lstrip("/")
+            else:
                 return self._send(404, {"error": "not found"})
-            with open(os.path.join(WEB, "index.html"), "rb") as f:
-                self._send(200, f.read(), "text/html; charset=utf-8")
+            with open(os.path.join(WEB, name), "rb") as f:
+                body = f.read()
+            ctype = "text/html; charset=utf-8" if name == "index.html" else STATIC[path]
+            self._send(200, body, ctype)
 
         def do_POST(self):
             if self.path != "/api/ask":
@@ -78,7 +91,9 @@ def make_server(answer_fn, port=PORT, host=HOST):
             try:
                 self._send(200, answer_fn(question.strip(), history=history))
             except Exception as e:  # 화면이 멈추거나 비지 않게: 상세는 서버 콘솔에만(키는 포함되지 않음)
-                print(f"  오류: {type(e).__name__}", file=sys.stderr)
+                import traceback  # 키는 요청 헤더에만 있고 예외 글에는 들어가지 않는다
+                print(f"  오류: {type(e).__name__}: {e}", file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
                 self._send(500, {"error": ERROR_TEXT})
 
         def log_message(self, fmt, *args):
@@ -94,7 +109,7 @@ def main():
     from chatbot import answer
     host, port = bind_address(os.environ)
     httpd = make_server(answer, port=port, host=host)
-    print(f"법령 챗봇: http://{host}:{httpd.server_address[1]}/  (끄려면 Ctrl+C)")
+    print(f"메뉴찾기 봇: http://{host}:{httpd.server_address[1]}/  (끄려면 Ctrl+C)")
     if host == HOST:  # 내 PC에서만 브라우저를 연다(서버에서는 열지 않음)
         webbrowser.open(f"http://{HOST}:{httpd.server_address[1]}/")
     try:

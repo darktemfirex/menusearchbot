@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(LAB, "tools"))
 import server  # noqa: E402
 
 FAKE = {"kind": "answer", "text": "가짜 답", "sources": [
-    {"law": "근로기준법", "article": "제60조", "title": "연차", "pending": False, "pending_dates": []}]}
+    {"kind": "screen", "id": "70-5004", "name": "업무마감 등록", "detail": "물류센터 > 물류재고 > 물류재고조사"}]}
 
 
 def start(answer_fn):
@@ -52,10 +52,10 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(self.httpd.server_address[0], "127.0.0.1")
 
     def test_질문이_오면_엔진_결과를_그대로_돌려준다(self):
-        status, body = post(self.httpd, {"question": "연차는?", "history": []})
+        status, body = post(self.httpd, {"question": "업무마감 화면은?", "history": []})
         self.assertEqual(status, 200)
         self.assertEqual(body, FAKE)
-        self.assertEqual(self.calls[0][0], "연차는?")
+        self.assertEqual(self.calls[0][0], "업무마감 화면은?")
 
     def test_빈_질문과_공백_질문은_400이고_엔진을_부르지_않는다(self):
         for q in ["", "   ", "\n\t "]:

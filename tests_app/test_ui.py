@@ -29,9 +29,9 @@ class UiTests(unittest.TestCase):
         self.assertNotIn("Authorization", HTML)
 
     def test_예시_질문_3개(self):
-        for q in ["육아휴직 1~2주만 쓸 수 있나요?",
-                  "난임치료휴가는 며칠이고 그중 며칠이 유급인가요?",
-                  "올해 최저임금은?"]:
+        for q in ["업무마감 등록 화면은 어디에 있나요?",
+                  "총괄영업보고서는 어느 메뉴에서 보나요?",
+                  "구내식당 식단표는 어디서 보나요?"]:
             self.assertIn(q, HTML)
 
     def test_사용자_글과_AI_글을_HTML로_해석하지_않는다(self):
@@ -43,7 +43,7 @@ class UiTests(unittest.TestCase):
         self.assertRegex(HTML, r"if\s*\(\s*!\s*q\s*\)\s*return")
 
     def test_답변_보류_카드와_시행예정_표시와_로딩과_오류_문구(self):
-        for s in ["답변 보류", "시행 예정", "pending_dates", "loading", "잠시 후 다시 시도해 주세요"]:
+        for s in ["답변 보류", "s.detail", "loading", "잠시 후 다시 시도해 주세요"]:
             self.assertIn(s, HTML)
 
     def test_보라_말풍선과_분홍_점선_보류_카드(self):

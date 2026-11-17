@@ -3,87 +3,133 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>법령 챗봇</title>
+<title>메뉴찾기</title>
+<meta name="theme-color" content="#0066ff">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <style>
   :root {
-    --bg: #f4f0ff; --ink: #2b2250; --purple: #7c4dff; --purple-dark: #5b34d6;
-    --mint: #d9f7ec; --mint-ink: #0f6b4f; --pink: #ff5fa2; --pink-bg: #fff0f7;
-    --sky: #e3f1ff; --sky-ink: #1d5fa8; --card: #ffffff; --line: #e0d8ff;
+    --bg: #f7f7f8; --card: #ffffff; --ink: #171719; --ink2: #37383c; --sub: #5a5c63; --cap: #70737c;
+    --line: #e1e2e4; --line-strong: #c9cbd0;
+    --primary: #0066ff; --primary-dark: #0054d1; --primary-tint: #eaf2fe;
+    --chip: #f0f1f3; --warn-bg: #fff4e5; --warn-line: #ff9200; --warn-ink: #5c3300;
+    --err-bg: #fff0f0; --err-ink: #8a1f1f;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink);
-         font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; }
-  .app { max-width: 760px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; padding: 0 16px; }
-  header { padding: 22px 0 8px; }
-  header h1 { margin: 0; font-size: 26px; letter-spacing: -0.5px; }
-  header p { margin: 4px 0 0; color: #6a5fa0; font-size: 14px; }
-  #chat { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 12px 0 20px; }
-  .row { display: flex; scroll-margin-bottom: 150px; }  /* 자동 스크롤 때 아래 입력창에 가리지 않게 */
+         font-family: Pretendard, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif; }
+  button, input { font-family: inherit; }
+  .app { min-height: 100vh; display: flex; flex-direction: column; }
+
+  header { background: var(--card); border-bottom: 1px solid var(--line); padding: 10px 32px; min-height: 64px;
+           display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .logo { width: 36px; height: 36px; border-radius: 10px; background: var(--primary); display: flex; align-items: center; justify-content: center; }
+  .title { display: flex; flex-direction: column; gap: 2px; }
+  .title b { font-size: 18px; letter-spacing: -0.4px; }
+  .title span { font-size: 12px; color: var(--sub); }
+  .spacer { flex-grow: 1; }
+  .count { font-size: 13px; color: var(--sub); background: var(--chip); padding: 6px 12px; border-radius: 999px; }
+
+  #chat { flex: 1; width: 100%; max-width: 800px; margin: 0 auto; padding: 32px 24px 24px;
+          display: flex; flex-direction: column; gap: 20px; }
+  .row { display: flex; scroll-margin-bottom: 190px; }  /* 자동 스크롤 때 아래 입력창에 가리지 않게 */
   .row.me { justify-content: flex-end; }
-  .bubble { max-width: 82%; padding: 12px 16px; border-radius: 20px; line-height: 1.6; font-size: 16px;
-            white-space: pre-wrap; word-break: keep-all; }
-  .me .bubble { background: var(--purple); color: #fff; border-bottom-right-radius: 6px; }
-  .bot .bubble { background: var(--card); border: 2px solid var(--line); border-bottom-left-radius: 6px; }
-  .stickers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .sticker { display: inline-block; background: var(--mint); color: var(--mint-ink); border-radius: 12px;
-             padding: 6px 10px; font-size: 13px; font-weight: 700; transform: rotate(-1.5deg);
-             box-shadow: 2px 2px 0 rgba(15, 107, 79, .25); }
-  .sticker:nth-child(even) { transform: rotate(1.5deg); }
-  .sticker small { display: block; font-weight: 400; opacity: .85; }
-  .pending { display: inline-block; margin-top: 4px; background: var(--sky); color: var(--sky-ink);
-             border-radius: 8px; padding: 2px 7px; font-size: 12px; font-weight: 700; }
-  .withheld { background: var(--pink-bg); border: 2px dashed var(--pink); border-radius: 20px;
-              padding: 14px 18px; max-width: 82%; }
-  .withheld b { color: #c2185b; font-size: 17px; }
-  .withheld p { margin: 6px 0 0; font-size: 14px; color: #7a3a58; }
-  .error { background: var(--pink-bg); border: 2px dashed var(--pink); color: #c2185b; border-radius: 20px; padding: 12px 16px; }
-  .loading span { display: inline-block; width: 9px; height: 9px; margin: 0 3px; border-radius: 50%;
-                  background: var(--purple); animation: bounce 1s infinite ease-in-out; }
+  .row.bot { flex-direction: column; gap: 10px; max-width: 640px; }
+  .bubble { padding: 12px 16px; font-size: 16px; line-height: 1.6; white-space: pre-wrap; word-break: keep-all; }
+  .me .bubble { background: var(--primary); color: #fff; border-radius: 16px 16px 4px 16px; max-width: 70%; }
+  .bot .bubble { background: var(--card); border: 1px solid var(--line); border-radius: 16px 16px 16px 4px; }
+
+  .sticker { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+             display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(23, 23, 23, .06); }
+  .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge { background: var(--primary-tint); color: var(--primary-dark); font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+  .badge.if { background: var(--chip); color: var(--ink2); }
+  .sid { font-size: 13px; font-weight: 500; color: var(--sub); }
+  .copy { display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid var(--line);
+          border-radius: 8px; background: #fff; color: var(--ink2); font-size: 13px; font-weight: 500; cursor: pointer; }
+  .copy:hover { border-color: var(--primary); color: var(--primary-dark); }
+  .crumbs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 15px; color: var(--sub); }
+  .crumbs .last { color: var(--ink); font-weight: 700; }
+  .crumbs svg { flex-shrink: 0; }
+  .detail { font-size: 14px; line-height: 1.6; color: var(--sub); }
+
+  .withheld { max-width: 640px; background: var(--warn-bg); border: 1px dashed var(--warn-line); border-radius: 12px;
+              padding: 16px; display: flex; gap: 12px; align-items: flex-start; }
+  .withheld b { font-size: 16px; color: var(--warn-ink); }
+  .withheld p { margin: 4px 0 0; font-size: 14px; line-height: 1.6; color: var(--warn-ink); }
+  .error { max-width: 640px; background: var(--err-bg); border: 1px dashed #ff4242; color: var(--err-ink); border-radius: 12px; padding: 12px 16px; }
+
+  .loading .bubble { display: flex; gap: 6px; padding: 16px; }
+  .loading span { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); animation: dot 1s infinite ease-in-out; }
   .loading span:nth-child(2) { animation-delay: .15s; }
   .loading span:nth-child(3) { animation-delay: .3s; }
-  @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); opacity: .4 } 40% { transform: translateY(-7px); opacity: 1 } }
-  .examples { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 10px; }
-  .examples button { border: 2px solid var(--purple); background: #fff; color: var(--purple-dark); border-radius: 999px;
-                     padding: 8px 14px; font-size: 14px; font-weight: 700; cursor: pointer; }
-  .examples button:hover { background: var(--purple); color: #fff; }
-  form { position: sticky; bottom: 0; display: flex; gap: 8px; padding: 10px 0 18px; background: var(--bg); }
-  input[type=text] { flex: 1; border: 2px solid var(--line); border-radius: 999px; padding: 13px 18px; font-size: 16px;
-                     outline: none; background: #fff; color: var(--ink); }
-  input[type=text]:focus { border-color: var(--purple); }
-  #send { border: 0; background: var(--purple); color: #fff; border-radius: 999px; padding: 0 22px; font-size: 16px;
-          font-weight: 700; cursor: pointer; }
-  #send:disabled { background: #b9a8f5; cursor: default; }
-  .note { text-align: center; font-size: 12px; color: #8b82b8; padding-bottom: 12px; }
+  @keyframes dot { 0%, 80%, 100% { opacity: .3 } 40% { opacity: 1 } }
+
+  footer { position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--line); padding: 16px 24px 20px; }
+  .dock { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; }
+  .examples button { min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff;
+                     color: var(--ink2); font-size: 14px; font-weight: 500; cursor: pointer; }
+  .examples button:hover { border-color: var(--primary); color: var(--primary-dark); }
+  form { display: flex; gap: 8px; }
+  input[type=text] { flex: 1; min-width: 0; height: 48px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: 12px;
+                     font-size: 16px; background: #fff; color: var(--ink); }
+  input[type=text]:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: var(--primary); }
+  #send { height: 48px; padding: 0 24px; border: 0; border-radius: 12px; background: var(--primary); color: #fff;
+          font-size: 16px; font-weight: 700; cursor: pointer; }
+  #send:hover { background: var(--primary-dark); }
+  #send:disabled { background: #a9c8ff; cursor: default; }
+  .note { text-align: center; font-size: 12px; color: var(--cap); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  @media (max-width: 560px) { header { padding: 10px 16px; } #chat { padding: 20px 16px; } .me .bubble { max-width: 85%; } }
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <h1>법령 챗봇</h1>
-    <p>근로기준법 · 남녀고용평등법 · 전자금융거래법 · 개인정보보호법에 있는 내용만, 근거 조항과 함께 답해요.</p>
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+    </div>
+    <div class="title"><b>메뉴찾기</b><span>사내 시스템</span></div>
+    <div class="spacer"></div>
+    <span class="count">등록 화면 307 · 인터페이스 317</span>
   </header>
   <div id="chat"></div>
-  <div class="examples" id="examples"></div>
-  <form id="form" autocomplete="off">
-    <input type="text" id="input" placeholder="궁금한 점을 물어보세요" maxlength="500">
-    <button type="submit" id="send">보내기</button>
-  </form>
-  <div class="note">법률 자문이 아니에요. 참고용으로만 봐 주세요.</div>
+  <footer>
+    <div class="dock">
+      <div class="examples" id="examples"></div>
+      <form id="form" autocomplete="off">
+        <label for="input" class="sr">찾는 화면이나 업무</label>
+        <input type="text" id="input" placeholder="찾는 화면이나 업무를 입력하세요" maxlength="500">
+        <button type="submit" id="send">보내기</button>
+      </form>
+      <div class="note">등록된 메뉴·인터페이스 목록 기준 안내입니다. 실제 화면 위치와 다르면 담당자에게 확인해 주세요.</div>
+    </div>
+  </footer>
 </div>
 <script>
-const EXAMPLES = ["육아휴직 1~2주만 쓸 수 있나요?", "난임치료휴가는 며칠이고 그중 며칠이 유급인가요?", "올해 최저임금은?"];
+const EXAMPLES = ["업무마감 등록 화면은 어디에 있나요?", "총괄영업보고서는 어느 메뉴에서 보나요?", "구내식당 식단표는 어디서 보나요?"];
 const chat = document.getElementById("chat");
 const form = document.getElementById("form");
 const input = document.getElementById("input");
 const send = document.getElementById("send");
 const history = [];   // [{question, result}] — 탭을 닫으면 사라진다
 let busy = false;
+const NS = "http://www.w3.org/2000/svg";
 
 function el(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
   if (text !== undefined) e.textContent = text;   // 글은 항상 textContent 로(HTML로 해석하지 않음)
   return e;
+}
+function icon(paths, size, stroke) {
+  const s = document.createElementNS(NS, "svg");
+  for (const [k, v] of Object.entries({ width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: stroke || "currentColor",
+    "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" })) s.setAttribute(k, v);
+  for (const d of paths) { const p = document.createElementNS(NS, "path"); p.setAttribute("d", d); s.appendChild(p); }
+  return s;
 }
 function add(node) { chat.appendChild(node); node.scrollIntoView({ block: "end", behavior: "smooth" }); return node; }
 
@@ -97,29 +143,60 @@ function loadingBubble() {
   row.appendChild(b); return add(row);
 }
 function errorBubble(text) {
-  const row = el("div", "row bot"); row.appendChild(el("div", "error", text)); add(row);
+  const row = el("div", "row"); row.appendChild(el("div", "error", text)); add(row);
 }
+
+function copyButton(text) {
+  const b = el("button", "copy"); b.type = "button";
+  b.appendChild(icon(["M9 9h11v11H9z", "M5 15V6a2 2 0 0 1 2-2h8"], 16));
+  const label = el("span", null, "경로 복사"); b.appendChild(label);
+  b.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(text); label.textContent = "복사됨"; }
+    catch (e) { label.textContent = "복사 실패"; }
+    setTimeout(() => { label.textContent = "경로 복사"; }, 1500);
+  });
+  return b;
+}
+
+function sourceCard(s) {           // 출처는 서버(코드)가 붙여서 보낸 그대로 보여 준다
+  const card = el("div", "sticker");
+  const meta = el("div", "meta");
+  meta.appendChild(el("span", s.kind === "interface" ? "badge if" : "badge", s.kind === "interface" ? "인터페이스" : "화면"));
+  meta.appendChild(el("span", "sid", s.id));
+  meta.appendChild(el("div", "spacer"));
+  if (s.kind === "interface") {
+    meta.appendChild(copyButton(`${s.name} (${s.id})`));
+    card.appendChild(meta);
+    card.appendChild(el("div", "crumbs last", s.name));
+    card.appendChild(el("div", "detail", s.detail));   // 대상 시스템 · 연계방식 · 주기
+  } else {
+    meta.appendChild(copyButton(`${s.detail} > ${s.name}`));
+    card.appendChild(meta);
+    const crumbs = el("div", "crumbs");
+    for (const part of s.detail.split(" > ")) {
+      crumbs.appendChild(el("span", null, part));
+      crumbs.appendChild(icon(["M9 6l6 6-6 6"], 14, "#70737c"));
+    }
+    crumbs.appendChild(el("span", "last", s.name));
+    card.appendChild(crumbs);
+  }
+  return card;
+}
+
 function resultBubble(r) {
-  const row = el("div", "row bot");
   if (r.kind === "withheld") {
     const card = el("div", "withheld");
-    card.appendChild(el("b", null, "답변 보류"));
-    card.appendChild(el("p", null, "제가 가진 법령(4개) 안에서는 이 질문에 답하는 조항을 찾지 못했어요."));
-    row.appendChild(card);
-  } else {
-    const b = el("div", "bubble");
-    b.appendChild(el("div", null, r.text));
-    const wrap = el("div", "stickers");
-    for (const s of r.sources) {                       // 출처는 서버(코드)가 붙여서 보낸 그대로 보여 준다
-      const st = el("div", "sticker", `${s.article} ${s.title}`);
-      st.appendChild(el("small", null, s.law));
-      if (s.pending) {
-        st.appendChild(el("span", "pending", `${s.pending_dates.join(", ")} 시행 예정`));
-      }
-      wrap.appendChild(st);
-    }
-    b.appendChild(wrap); row.appendChild(b);
+    card.appendChild(icon(["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z", "M12 8v5", "M12 16.5v.01"], 22, "#8a4b00"));
+    const body = el("div");
+    body.appendChild(el("b", null, "답변 보류"));
+    body.appendChild(el("p", null, "등록된 화면·인터페이스 목록에서 찾지 못했습니다. 화면 이름을 바꿔서 다시 입력해 주세요."));
+    card.appendChild(body);
+    const row = el("div", "row"); row.appendChild(card); add(row);
+    return;
   }
+  const row = el("div", "row bot");
+  row.appendChild(el("div", "bubble", r.text.replace(/\*\*/g, "")));   // 답 속 굵은 표시(**)는 글자만 남긴다
+  for (const s of r.sources) row.appendChild(sourceCard(s));
   add(row);
 }
 
@@ -144,6 +221,10 @@ async function ask(q) {
   } finally {
     busy = false; send.disabled = false; input.focus();
   }
+}
+
+if ("serviceWorker" in navigator) {   // 설치형 웹앱(PWA): HTTPS 또는 localhost 에서만 등록된다
+  window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").catch(() => {}); });
 }
 
 form.addEventListener("submit", (ev) => { ev.preventDefault(); ask(input.value); });
