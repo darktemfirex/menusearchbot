@@ -67,7 +67,9 @@ def make_server(answer_fn, port=PORT, host=HOST):
 
         def do_GET(self):
             path = self.path.split("?")[0]
-            if path in ("/", "/index.html"):
+            if path in ("/", "/app.html"):      # 서버로 접속하면 바로 챗봇 화면
+                name = "app.html"
+            elif path == "/index.html":         # 설치 전용 안내 화면(Pages 의 첫 화면과 같은 파일)
                 name = "index.html"
             elif path in STATIC:  # PWA 파일만 이름을 정해 둔 것에서 내보낸다(임의 경로 접근 불가)
                 name = path.lstrip("/")
@@ -75,7 +77,7 @@ def make_server(answer_fn, port=PORT, host=HOST):
                 return self._send(404, {"error": "not found"})
             with open(os.path.join(WEB, name), "rb") as f:
                 body = f.read()
-            ctype = "text/html; charset=utf-8" if name == "index.html" else STATIC[path]
+            ctype = "text/html; charset=utf-8" if name.endswith(".html") else STATIC[path]
             self._send(200, body, ctype)
 
         def do_POST(self):

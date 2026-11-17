@@ -1,11 +1,11 @@
-"""화면(tools/web/index.html) 정적 검사. 실행: python -m unittest tests_app.test_ui -v"""
+"""챗봇 화면(tools/web/app.html) 정적 검사. 실행: python -m unittest tests_app.test_ui -v"""
 import colorsys
 import os
 import re
 import unittest
 
 LAB = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HTML = open(os.path.join(LAB, "tools", "web", "index.html"), encoding="utf-8").read()
+HTML = open(os.path.join(LAB, "tools", "web", "app.html"), encoding="utf-8").read()
 
 
 def _hex_colors(text):

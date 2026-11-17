@@ -8,7 +8,7 @@
 ## 0. Pages에서 내려받기
 
 https://darktemfirex.github.io/menusearchbot/ 에서 **앱 내려받기**(`menusearchbot.zip`)를 눌러 압축을 풀고, Windows는 `run.bat`, Mac/Linux는 `sh run.sh` 를 실행합니다(Python 3.8 이상, API 키 필요).
-Pages 화면 자체는 서버가 없어서 이름·경로·ID로만 찾는 **브라우저 검색 모드**로 동작하고, AI 답변은 내려받은 앱에서 나옵니다.
+Pages 주소(`/`)는 **앱 설치 전용 화면**입니다(챗봇은 연결돼 있지 않습니다). 설치한 앱은 `app.html` 을 열고, 서버가 없어서 이름·경로·ID로만 찾는 **브라우저 검색 모드**로 동작합니다. AI 답변은 내려받은 앱(서버 실행)에서 나옵니다.
 
 ## 1. Codespaces (설치 없이 브라우저에서)
 

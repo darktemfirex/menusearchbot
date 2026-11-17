@@ -28,7 +28,7 @@ class WebData(unittest.TestCase):
         self.assertNotIn("AXROUTER", text)
 
     def test_화면이_검색_스크립트와_데이터를_쓴다(self):
-        with open(os.path.join(WEB, "index.html"), encoding="utf-8") as f:
+        with open(os.path.join(WEB, "app.html"), encoding="utf-8") as f:
             html = f.read()
         self.assertIn('src="search.js"', html)
         self.assertIn("data.json", html)

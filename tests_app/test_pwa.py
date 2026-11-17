@@ -71,5 +71,52 @@ class PwaRoutes(unittest.TestCase):
             self.assertEqual(self.get(path).code, 404, path)
 
 
+
+
+class LandingAndApp(unittest.TestCase):
+    """주소(/)는 설치 전용 안내, 챗봇 화면은 app.html 로 나뉜다."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.httpd = server.make_server(lambda q, history=None: {}, port=0)
+        threading.Thread(target=cls.httpd.serve_forever, daemon=True).start()
+        cls.base = f"http://127.0.0.1:{cls.httpd.server_address[1]}"
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+        cls.httpd.server_close()
+
+    def read(self, path):
+        return urllib.request.urlopen(self.base + path, timeout=10).read().decode("utf-8")
+
+    def test_설치_화면에는_챗봇이_연결되어_있지_않다(self):
+        html = open(os.path.join(WEB, "index.html"), encoding="utf-8").read()
+        self.assertIn('id="install"', html)
+        self.assertIn("beforeinstallprompt", html)
+        for s in ['id="chat"', "api/ask", 'id="input"', "search.js", "data.json"]:
+            self.assertNotIn(s, html, s)
+
+    def test_매니페스트는_설치된_앱의_시작_화면을_app_html로_한다(self):
+        m = json.load(open(os.path.join(WEB, "manifest.webmanifest"), encoding="utf-8"))
+        self.assertEqual(m["start_url"], "app.html")
+        self.assertTrue(os.path.exists(os.path.join(WEB, "app.html")))
+
+    def test_이미_설치된_앱으로_열면_앱_화면으로_보낸다(self):
+        html = open(os.path.join(WEB, "index.html"), encoding="utf-8").read()
+        self.assertIn('location.replace("app.html")', html)
+
+    def test_서버_루트는_챗봇_화면이고_index_html은_설치_화면(self):
+        self.assertIn('id="chat"', self.read("/"))
+        self.assertIn('id="chat"', self.read("/app.html"))
+        landing = self.read("/index.html")
+        self.assertIn('id="install"', landing)
+        self.assertNotIn('id="chat"', landing)
+
+    def test_서비스워커가_앱_화면을_미리_담는다(self):
+        sw = open(os.path.join(WEB, "sw.js"), encoding="utf-8").read()
+        self.assertIn('"app.html"', sw)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

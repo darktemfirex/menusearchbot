@@ -3,284 +3,88 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>메뉴찾기</title>
+<title>메뉴찾기 앱 설치</title>
 <meta name="theme-color" content="#0066ff">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-  :root {
-    --bg: #f7f7f8; --card: #ffffff; --ink: #171719; --ink2: #37383c; --sub: #5a5c63; --cap: #70737c;
-    --line: #e1e2e4; --line-strong: #c9cbd0;
-    --primary: #0066ff; --primary-dark: #0054d1; --primary-tint: #eaf2fe;
-    --chip: #f0f1f3; --warn-bg: #fff4e5; --warn-line: #ff9200; --warn-ink: #5c3300;
-    --err-bg: #fff0f0; --err-ink: #8a1f1f;
-  }
+  :root { --bg: #f7f7f8; --card: #fff; --ink: #171719; --ink2: #37383c; --sub: #5a5c63; --line: #e1e2e4;
+          --primary: #0066ff; --primary-dark: #0054d1; --tint: #eaf2fe; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink);
-         font-family: Pretendard, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif; }
-  button, input { font-family: inherit; }
-  .app { min-height: 100vh; display: flex; flex-direction: column; }
-
-  header { background: var(--card); border-bottom: 1px solid var(--line); padding: 10px 32px; min-height: 64px;
-           display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-  .logo { width: 36px; height: 36px; border-radius: 10px; background: var(--primary); display: flex; align-items: center; justify-content: center; }
-  .title { display: flex; flex-direction: column; gap: 2px; }
-  .title b { font-size: 18px; letter-spacing: -0.4px; }
-  .title span { font-size: 12px; color: var(--sub); }
-  .spacer { flex-grow: 1; }
-  .count { font-size: 13px; color: var(--sub); background: var(--chip); padding: 6px 12px; border-radius: 999px; }
-  .install { min-height: 36px; padding: 0 14px; border: 1px solid var(--primary); border-radius: 999px; background: var(--primary-tint);
-             color: var(--primary-dark); font-size: 13px; font-weight: 700; cursor: pointer; }
-  .install:hover { background: var(--primary); color: #fff; }
-  .install[hidden] { display: none; }
-  .ios-hint { max-width: 800px; width: 100%; margin: 12px auto 0; padding: 12px 16px; background: var(--primary-tint); color: #0a2f73;
-              border-radius: 12px; font-size: 14px; line-height: 1.6; }
-
-  #chat { flex: 1; width: 100%; max-width: 800px; margin: 0 auto; padding: 32px 24px 24px;
-          display: flex; flex-direction: column; gap: 20px; }
-  .row { display: flex; scroll-margin-bottom: 190px; }  /* 자동 스크롤 때 아래 입력창에 가리지 않게 */
-  .row.me { justify-content: flex-end; }
-  .row.bot { flex-direction: column; gap: 10px; max-width: 640px; }
-  .bubble { padding: 12px 16px; font-size: 16px; line-height: 1.6; white-space: pre-wrap; word-break: keep-all; }
-  .me .bubble { background: var(--primary); color: #fff; border-radius: 16px 16px 4px 16px; max-width: 70%; }
-  .bot .bubble { background: var(--card); border: 1px solid var(--line); border-radius: 16px 16px 16px 4px; }
-
-  .sticker { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
-             display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(23, 23, 23, .06); }
-  .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .badge { background: var(--primary-tint); color: var(--primary-dark); font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
-  .badge.if { background: var(--chip); color: var(--ink2); }
-  .sid { font-size: 13px; font-weight: 500; color: var(--sub); }
-  .copy { display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid var(--line);
-          border-radius: 8px; background: #fff; color: var(--ink2); font-size: 13px; font-weight: 500; cursor: pointer; }
-  .copy:hover { border-color: var(--primary); color: var(--primary-dark); }
-  .crumbs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 15px; color: var(--sub); }
-  .crumbs .last { color: var(--ink); font-weight: 700; }
-  .crumbs svg { flex-shrink: 0; }
-  .detail { font-size: 14px; line-height: 1.6; color: var(--sub); }
-
-  .withheld { max-width: 640px; background: var(--warn-bg); border: 1px dashed var(--warn-line); border-radius: 12px;
-              padding: 16px; display: flex; gap: 12px; align-items: flex-start; }
-  .withheld b { font-size: 16px; color: var(--warn-ink); }
-  .withheld p { margin: 4px 0 0; font-size: 14px; line-height: 1.6; color: var(--warn-ink); }
-  .error { max-width: 640px; background: var(--err-bg); border: 1px dashed #ff4242; color: var(--err-ink); border-radius: 12px; padding: 12px 16px; }
-
-  .loading .bubble { display: flex; gap: 6px; padding: 16px; }
-  .loading span { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); animation: dot 1s infinite ease-in-out; }
-  .loading span:nth-child(2) { animation-delay: .15s; }
-  .loading span:nth-child(3) { animation-delay: .3s; }
-  @keyframes dot { 0%, 80%, 100% { opacity: .3 } 40% { opacity: 1 } }
-
-  footer { position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--line); padding: 16px 24px 20px; }
-  .dock { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
-  form { display: flex; gap: 8px; }
-  input[type=text] { flex: 1; min-width: 0; height: 48px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: 12px;
-                     font-size: 16px; background: #fff; color: var(--ink); }
-  input[type=text]:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: var(--primary); }
-  #send { height: 48px; padding: 0 24px; border: 0; border-radius: 12px; background: var(--primary); color: #fff;
-          font-size: 16px; font-weight: 700; cursor: pointer; }
-  #send:hover { background: var(--primary-dark); }
-  #send:disabled { background: #a9c8ff; cursor: default; }
-  .note { text-align: center; font-size: 12px; color: var(--cap); }
-  .pages-note { max-width: 800px; width: 100%; margin: 16px auto 0; padding: 12px 16px; background: var(--primary-tint);
-                color: #0a2f73; border-radius: 12px; font-size: 14px; line-height: 1.6; }
-  .pages-note a { color: var(--primary-dark); font-weight: 700; }
-  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  @media (max-width: 560px) { header { padding: 10px 16px; } #chat { padding: 20px 16px; } .me .bubble { max-width: 85%; } }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg);
+         color: var(--ink); font-family: Pretendard, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif; }
+  main { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 32px 24px;
+         box-shadow: 0 8px 16px rgba(23, 23, 23, .08), 0 2px 4px rgba(23, 23, 23, .06); text-align: center; }
+  .logo { width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 18px; background: var(--primary); display: flex; align-items: center; justify-content: center; }
+  h1 { margin: 0 0 8px; font-size: 24px; letter-spacing: -0.5px; }
+  .lead { margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: var(--sub); word-break: keep-all; }
+  button { width: 100%; min-height: 52px; border: 0; border-radius: 12px; background: var(--primary); color: #fff; font-family: inherit;
+           font-size: 17px; font-weight: 700; cursor: pointer; }
+  button:hover { background: var(--primary-dark); }
+  button:disabled { background: #a9c8ff; cursor: default; }
+  #status { margin: 16px 0 0; min-height: 24px; font-size: 14px; line-height: 1.6; color: var(--ink2); word-break: keep-all; }
+  #status.ok { color: #0a6b2d; font-weight: 700; }
+  .steps { margin: 24px 0 0; padding: 16px; background: var(--tint); border-radius: 12px; text-align: left; font-size: 14px; line-height: 1.7; color: #0a2f73; }
+  .steps b { display: block; margin-bottom: 2px; }
+  .steps div + div { margin-top: 10px; }
+  [hidden] { display: none; }
 </style>
 </head>
 <body>
-<div class="app">
-  <header>
-    <div class="logo">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
-    </div>
-    <div class="title"><b>메뉴찾기</b><span>사내 시스템</span></div>
-    <div class="spacer"></div>
-    <span class="count">등록 화면 307 · 인터페이스 317</span>
-    <button type="button" id="install" class="install" hidden>앱 설치</button>
-  </header>
-  <div id="chat"></div>
-  <footer>
-    <div class="dock">
-      <form id="form" autocomplete="off">
-        <label for="input" class="sr">찾는 화면이나 업무</label>
-        <input type="text" id="input" placeholder="찾는 화면이나 업무를 입력하세요" maxlength="500">
-        <button type="submit" id="send">보내기</button>
-      </form>
-      <div class="note">등록된 메뉴·인터페이스 목록 기준 안내입니다. 실제 화면 위치와 다르면 담당자에게 확인해 주세요.</div>
-    </div>
-  </footer>
-</div>
-<script src="search.js"></script>
+<main>
+  <div class="logo">
+    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+  </div>
+  <h1>메뉴찾기</h1>
+  <p class="lead">화면과 인터페이스의 위치를 메뉴 경로로 찾아 주는 앱입니다. 설치하면 홈 화면에서 바로 열 수 있습니다.</p>
+  <button type="button" id="install">앱 설치</button>
+  <p id="status" role="status"></p>
+  <div class="steps" id="steps">
+    <div><b>Android · PC (Chrome, Edge)</b>위의 「앱 설치」 버튼을 누르고 설치 창에서 「설치」를 선택합니다.</div>
+    <div><b>iPhone (Safari)</b>화면 아래의 공유 버튼을 누른 뒤 「홈 화면에 추가」를 선택합니다.</div>
+  </div>
+</main>
 <script>
-const chat = document.getElementById("chat");
-const form = document.getElementById("form");
-const input = document.getElementById("input");
-const send = document.getElementById("send");
-const history = [];   // [{question, result}] — 탭을 닫으면 사라진다
-let busy = false;
-const NS = "http://www.w3.org/2000/svg";
-
-function el(tag, cls, text) {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;   // 글은 항상 textContent 로(HTML로 해석하지 않음)
-  return e;
-}
-function icon(paths, size, stroke) {
-  const s = document.createElementNS(NS, "svg");
-  for (const [k, v] of Object.entries({ width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: stroke || "currentColor",
-    "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" })) s.setAttribute(k, v);
-  for (const d of paths) { const p = document.createElementNS(NS, "path"); p.setAttribute("d", d); s.appendChild(p); }
-  return s;
-}
-function add(node) { chat.appendChild(node); node.scrollIntoView({ block: "end", behavior: "smooth" }); return node; }
-
-function userBubble(text) {
-  const row = el("div", "row me"); row.appendChild(el("div", "bubble", text)); add(row);
-}
-function loadingBubble() {
-  const row = el("div", "row bot loading");
-  const b = el("div", "bubble");
-  for (let i = 0; i < 3; i++) b.appendChild(el("span"));
-  row.appendChild(b); return add(row);
-}
-function errorBubble(text) {
-  const row = el("div", "row"); row.appendChild(el("div", "error", text)); add(row);
-}
-
-function copyButton(text) {
-  const b = el("button", "copy"); b.type = "button";
-  b.appendChild(icon(["M9 9h11v11H9z", "M5 15V6a2 2 0 0 1 2-2h8"], 16));
-  const label = el("span", null, "경로 복사"); b.appendChild(label);
-  b.addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(text); label.textContent = "복사됨"; }
-    catch (e) { label.textContent = "복사 실패"; }
-    setTimeout(() => { label.textContent = "경로 복사"; }, 1500);
-  });
-  return b;
-}
-
-function sourceCard(s) {           // 출처는 서버(코드)가 붙여서 보낸 그대로 보여 준다
-  const card = el("div", "sticker");
-  const meta = el("div", "meta");
-  meta.appendChild(el("span", s.kind === "interface" ? "badge if" : "badge", s.kind === "interface" ? "인터페이스" : "화면"));
-  meta.appendChild(el("span", "sid", s.id));
-  meta.appendChild(el("div", "spacer"));
-  if (s.kind === "interface") {
-    meta.appendChild(copyButton(`${s.name} (${s.id})`));
-    card.appendChild(meta);
-    card.appendChild(el("div", "crumbs last", s.name));
-    card.appendChild(el("div", "detail", s.detail));   // 대상 시스템 · 연계방식 · 주기
-  } else {
-    meta.appendChild(copyButton(`${s.detail} > ${s.name}`));
-    card.appendChild(meta);
-    const crumbs = el("div", "crumbs");
-    for (const part of s.detail.split(" > ")) {
-      crumbs.appendChild(el("span", null, part));
-      crumbs.appendChild(icon(["M9 6l6 6-6 6"], 14, "#70737c"));
-    }
-    crumbs.appendChild(el("span", "last", s.name));
-    card.appendChild(crumbs);
-  }
-  return card;
-}
-
-function resultBubble(r) {
-  if (r.kind === "withheld") {
-    const card = el("div", "withheld");
-    card.appendChild(icon(["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z", "M12 8v5", "M12 16.5v.01"], 22, "#8a4b00"));
-    const body = el("div");
-    body.appendChild(el("b", null, "답변 보류"));
-    body.appendChild(el("p", null, "등록된 화면·인터페이스 목록에서 찾지 못했습니다. 화면 이름을 바꿔서 다시 입력해 주세요."));
-    card.appendChild(body);
-    const row = el("div", "row"); row.appendChild(card); add(row);
-    return;
-  }
-  const row = el("div", "row bot");
-  row.appendChild(el("div", "bubble", r.text.replace(/\*\*/g, "")));   // 답 속 굵은 표시(**)는 글자만 남긴다
-  for (const s of r.sources) row.appendChild(sourceCard(s));
-  add(row);
-}
-
-let rowsCache = null;
-async function loadRows() {        // 브라우저 검색 모드용 목록(data.json)
-  if (!rowsCache) { const r = await fetch("data.json"); if (!r.ok) throw new Error("data"); rowsCache = await r.json(); }
-  return rowsCache;
-}
-
-// GitHub Pages 처럼 검색 서버가 없는 주소에서는 안내와 내려받기 링크를 보여 준다
-if (location.hostname.endsWith("github.io")) {
-  const note = el("div", "pages-note");
-  note.appendChild(el("span", null, "지금은 브라우저 검색 모드입니다(이름·경로·ID로 검색). AI 답변은 내려받은 앱에서 쓸 수 있어요. "));
-  const a = el("a", null, "앱 내려받기"); a.href = "menusearchbot.zip"; a.setAttribute("download", "");
-  note.appendChild(a);
-  chat.before(note);
-}
-
-async function ask(q) {
-  q = q.trim();
-  if (!q) return;                // 빈 입력·공백만 입력은 보내지 않는다
-  if (busy) return;
-  busy = true; send.disabled = true; input.value = "";
-  userBubble(q);
-  const wait = loadingBubble();
-  try {
-    const res = await fetch("./api/ask", {   // 상대 경로: 서버 루트와 /menusearchbot/ 같은 하위 주소 모두에서 동작
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: q, history: history.slice(-3) }),
-    });
-    if (res.status === 404 || res.status === 405) {   // 검색 서버가 없는 정적 주소(GitHub Pages 등): 브라우저 안에서 검색
-      const rows = await loadRows();
-      const local = MenuSearch.search(q, rows);
-      wait.remove();
-      resultBubble(local); history.push({ question: q, result: local });
-      return;
-    }
-    const data = await res.json();
-    wait.remove();
-    if (!res.ok) { errorBubble(data.error || "잠시 후 다시 시도해 주세요"); }
-    else { resultBubble(data); history.push({ question: q, result: data }); }
-  } catch (e) {
-    wait.remove(); errorBubble("잠시 후 다시 시도해 주세요");
-  } finally {
-    busy = false; send.disabled = false; input.focus();
-  }
-}
-
-// 앱 설치 버튼: 주소로 들어오면 바로 설치할 수 있게 한다
-const installBtn = document.getElementById("install");
+const btn = document.getElementById("install");
+const statusEl = document.getElementById("status");
+const steps = document.getElementById("steps");
 const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const ua = navigator.userAgent;
+const ios = /iphone|ipad|ipod/i.test(ua);
+const iosSafari = ios && !/crios|fxios|edgios/i.test(ua);
 let installEvent = null;
-if (!standalone) {
-  window.addEventListener("beforeinstallprompt", (ev) => {   // Chrome·Edge·Android: 브라우저의 설치 창을 띄울 수 있다
-    ev.preventDefault(); installEvent = ev; installBtn.hidden = false;
+
+function say(text, ok) { statusEl.textContent = text; statusEl.className = ok ? "ok" : ""; }
+
+if (standalone) {                       // 이미 앱으로 열었다면 설치 화면 대신 앱 화면으로 보낸다
+  location.replace("app.html");
+} else {
+  window.addEventListener("beforeinstallprompt", (ev) => {   // Chrome·Edge·Android: 설치 창을 직접 띄울 수 있다
+    ev.preventDefault(); installEvent = ev;
   });
-  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (ios) installBtn.hidden = false;                       // iOS 는 설치 창을 못 띄워서 방법을 안내한다
-  installBtn.addEventListener("click", async () => {
+  window.addEventListener("appinstalled", () => {
+    btn.hidden = true; steps.hidden = true;
+    say("설치되었습니다. 홈 화면(PC는 시작 메뉴)의 「메뉴찾기」를 열어 주세요.", true);
+  });
+  btn.addEventListener("click", async () => {
     if (installEvent) {
       installEvent.prompt();
-      await installEvent.userChoice.catch(() => {});
-      installEvent = null; installBtn.hidden = true;
-    } else if (ios && !document.getElementById("ios-hint")) {
-      const safari = !/crios|fxios|edgios/i.test(navigator.userAgent);
-      const hint = el("div", "ios-hint", safari
-        ? "화면 아래의 공유 버튼을 누른 뒤 「홈 화면에 추가」를 선택해 주세요."
-        : "iPhone에서는 Safari에서만 설치할 수 있습니다. 이 주소를 Safari로 열고 공유 버튼 → 「홈 화면에 추가」를 선택해 주세요.");
-      hint.id = "ios-hint"; chat.before(hint);
+      const choice = await installEvent.userChoice.catch(() => null);
+      installEvent = null;
+      if (choice && choice.outcome === "dismissed") say("설치를 취소했습니다. 다시 설치하려면 버튼을 눌러 주세요.");
+    } else if (ios) {
+      say(iosSafari ? "화면 아래의 공유 버튼을 누른 뒤 「홈 화면에 추가」를 선택해 주세요."
+                    : "iPhone에서는 Safari에서만 설치할 수 있습니다. 이 주소를 Safari로 열어 주세요.");
+    } else {
+      say("설치 창을 열 수 없습니다. 브라우저 주소창의 설치 아이콘 또는 메뉴의 「앱 설치」를 이용해 주세요. 이미 설치했다면 홈 화면에서 열어 주세요.");
     }
   });
-  window.addEventListener("appinstalled", () => { installBtn.hidden = true; });
 }
 
-if ("serviceWorker" in navigator) {   // 설치형 웹앱(PWA): HTTPS 또는 localhost 에서만 등록된다
+if ("serviceWorker" in navigator) {   // 설치 조건: HTTPS 또는 localhost 에서 서비스 워커가 등록돼야 한다
   window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
 }
-
-form.addEventListener("submit", (ev) => { ev.preventDefault(); ask(input.value); });
 </script>
 </body>
 </html>
