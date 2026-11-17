@@ -28,11 +28,10 @@ class UiTests(unittest.TestCase):
         self.assertNotIn("axrouter.ai", HTML)
         self.assertNotIn("Authorization", HTML)
 
-    def test_예시_질문_3개(self):
-        for q in ["업무마감 등록 화면은 어디에 있나요?",
-                  "총괄영업보고서는 어느 메뉴에서 보나요?",
-                  "구내식당 식단표는 어디서 보나요?"]:
-            self.assertIn(q, HTML)
+    def test_샘플_질문_버튼이_없다(self):
+        self.assertNotIn("EXAMPLES", HTML)
+        self.assertNotIn('id="examples"', HTML)
+        self.assertNotIn("어디에 있나요?", HTML)
 
     def test_사용자_글과_AI_글을_HTML로_해석하지_않는다(self):
         self.assertNotIn("innerHTML", HTML)
