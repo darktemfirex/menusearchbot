@@ -16,7 +16,7 @@ if not exist .env if not defined AXROUTER_API_KEY goto nokey
 
 > "%VBS%" echo Set s = CreateObject("WScript.Shell")
 >> "%VBS%" echo s.CurrentDirectory = "%~dp0"
->> "%VBS%" echo s.Run "cmd /c set PYTHONUTF8=1 ^& %PY% tools\server.py --background", 0, False
+>> "%VBS%" echo s.Run "cmd /c %PY% -X utf8 tools\server.py --background", 0, False
 echo Autostart is ON. The server starts hidden every time you sign in.
 echo Open the app: http://127.0.0.1:8765/  (or the installed app)
 wscript "%VBS%"
