@@ -5,6 +5,11 @@
 
 필요한 것: **AXRouter API 키**(`AXROUTER_API_KEY`). 키는 저장소에 넣지 마세요.
 
+## 0. Pages에서 내려받기
+
+https://darktemfirex.github.io/menusearchbot/ 에서 **앱 내려받기**(`menusearchbot.zip`)를 눌러 압축을 풀고, Windows는 `run.bat`, Mac/Linux는 `sh run.sh` 를 실행합니다(Python 3.8 이상, API 키 필요).
+Pages 화면 자체는 서버가 없어서 이름·경로·ID로만 찾는 **브라우저 검색 모드**로 동작하고, AI 답변은 내려받은 앱에서 나옵니다.
+
 ## 1. Codespaces (설치 없이 브라우저에서)
 
 1. 저장소 페이지에서 **Code → Codespaces → Create codespace on main**
@@ -36,12 +41,13 @@ docker run --rm -p 8080:8080 -e AXROUTER_API_KEY=여기에_키 -e PORT=8080 menu
 
 http://localhost:8080/ 에서 열립니다.
 
-## 데이터를 바꿀 때
+## 데이터를 바꿀 때(엑셀 → 검색 데이터)
 
 `data/search_data.xlsx` 를 바꾼 뒤 검색 데이터를 다시 만듭니다.
 
 ```bash
-python3 tools/index.py
+python3 tools/index.py            # AI 검색용 store/index.json
+python3 tools/export_web_data.py   # 브라우저 검색 모드용 tools/web/data.json
 ```
 
 ## 테스트(API 호출 없음)

@@ -81,6 +81,9 @@
   #send:hover { background: var(--primary-dark); }
   #send:disabled { background: #a9c8ff; cursor: default; }
   .note { text-align: center; font-size: 12px; color: var(--cap); }
+  .pages-note { max-width: 800px; width: 100%; margin: 16px auto 0; padding: 12px 16px; background: var(--primary-tint);
+                color: #0a2f73; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+  .pages-note a { color: var(--primary-dark); font-weight: 700; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   @media (max-width: 560px) { header { padding: 10px 16px; } #chat { padding: 20px 16px; } .me .bubble { max-width: 85%; } }
 </style>
@@ -108,6 +111,7 @@
     </div>
   </footer>
 </div>
+<script src="search.js"></script>
 <script>
 const EXAMPLES = ["업무마감 등록 화면은 어디에 있나요?", "총괄영업보고서는 어느 메뉴에서 보나요?", "구내식당 식단표는 어디서 보나요?"];
 const chat = document.getElementById("chat");
@@ -200,6 +204,21 @@ function resultBubble(r) {
   add(row);
 }
 
+let rowsCache = null;
+async function loadRows() {        // 브라우저 검색 모드용 목록(data.json)
+  if (!rowsCache) { const r = await fetch("data.json"); if (!r.ok) throw new Error("data"); rowsCache = await r.json(); }
+  return rowsCache;
+}
+
+// GitHub Pages 처럼 검색 서버가 없는 주소에서는 안내와 내려받기 링크를 보여 준다
+if (location.hostname.endsWith("github.io")) {
+  const note = el("div", "pages-note");
+  note.appendChild(el("span", null, "지금은 브라우저 검색 모드입니다(이름·경로·ID로 검색). AI 답변은 내려받은 앱에서 쓸 수 있어요. "));
+  const a = el("a", null, "앱 내려받기"); a.href = "menusearchbot.zip"; a.setAttribute("download", "");
+  note.appendChild(a);
+  chat.before(note);
+}
+
 async function ask(q) {
   q = q.trim();
   if (!q) return;                // 빈 입력·공백만 입력은 보내지 않는다
@@ -212,9 +231,11 @@ async function ask(q) {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question: q, history: history.slice(-3) }),
     });
-    if (res.status === 404 || res.status === 405) {   // 검색 서버가 없는 정적 주소(GitHub Pages 등)
+    if (res.status === 404 || res.status === 405) {   // 검색 서버가 없는 정적 주소(GitHub Pages 등): 브라우저 안에서 검색
+      const rows = await loadRows();
+      const local = MenuSearch.search(q, rows);
       wait.remove();
-      errorBubble("이 주소에는 검색 서버가 없어 답할 수 없습니다. 서버가 실행 중인 주소에서 이용해 주세요.");
+      resultBubble(local); history.push({ question: q, result: local });
       return;
     }
     const data = await res.json();
