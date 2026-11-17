@@ -90,10 +90,11 @@ def make_item(row):
     kind, id_, name = row.get("B", ""), row.get("C", ""), row.get("D", "")
     if not (kind and id_ and name):
         return None
+    biz = f" | 업무: {row['업무']}" if row.get("업무") else ""   # 물류·수발주처럼 업무 구분이 있으면 검색 글에 넣는다
     if kind == "화면":
         path = row.get("I", "")
         return {
-            "text": f"[화면] {name} (화면ID {id_}) | 메뉴 경로: {path} > {name}",
+            "text": f"[화면] {name} (화면ID {id_}){biz} | 메뉴 경로: {path} > {name}",
             "meta": {"kind": "screen", "id": id_, "name": name, "detail": path},
         }
     method, prog, cycle, when = _plain(row.get("E")), _plain(row.get("F")), _plain(row.get("G")), row.get("H", "").replace("\r\n", " ")
@@ -101,14 +102,25 @@ def make_item(row):
     when_txt = f" {when}" if when else ""
     detail = f"인터페이스 · {system} · {method} · {prog} · 주기 {cycle}{when_txt}"
     return {
-        "text": f"[인터페이스] {name} (인터페이스ID {id_}) | 대상 시스템: {system} | 연계방식: {method} | "
+        "text": f"[인터페이스] {name} (인터페이스ID {id_}){biz} | 대상 시스템: {system} | 연계방식: {method} | "
                 f"프로그램 종류: {prog} | 실행주기: {cycle}{when_txt}",
         "meta": {"kind": "interface", "id": id_, "name": name, "detail": detail},
     }
 
 
+_HEADERS = {"번호": "A", "구분": "B", "인터페이스ID": "C", "인터페이스명": "D", "연계방식": "E",
+            "프로그램종류": "F", "실행주기": "G", "배치수행시간": "H", "설명": "I", "업무": "업무"}
+
+
+def normalize(rows):
+    """머리글 이름으로 열을 찾아 make_item 이 쓰는 열 글자(A~I)로 맞춘다.
+    '업무' 열이 끼어 있어 열 위치가 밀린 엑셀도 같은 방식으로 읽는다."""
+    header = {col: _HEADERS.get(re.sub(r"\s+", "", name)) for col, name in rows[0].items()}
+    return [{header[c]: v for c, v in r.items() if header.get(c)} for r in rows[1:]]
+
+
 def load_items(path=DATA):
-    items = [make_item(r) for r in read_xlsx(path)[1:]]  # 첫 줄은 머리글
+    items = [make_item(r) for r in normalize(read_xlsx(path))]
     return [it for it in items if it]
 
 
