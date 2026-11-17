@@ -45,6 +45,10 @@ class UiTests(unittest.TestCase):
         for s in ["답변 보류", "s.detail", "loading", "잠시 후 다시 시도해 주세요"]:
             self.assertIn(s, HTML)
 
+    def test_서버를_찾고_없으면_브라우저_검색으로_넘어가며_모드를_표시한다(self):
+        for s in ["/api/health", "127.0.0.1:8765", "AI 서버 연결됨", "브라우저 검색 모드", "serverUrl", "MenuSearch.search"]:
+            self.assertIn(s, HTML)
+
     def test_보라_말풍선과_분홍_점선_보류_카드(self):
         self.assertRegex(HTML, r"dashed")
         self.assertRegex(HTML, r"/api/ask")

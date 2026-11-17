@@ -11,6 +11,7 @@ on:
       - "store/**"
       - "run.sh"
       - "run.bat"
+      - "autostart.bat"
       - "README.md"
       - "Dockerfile"
       - ".github/workflows/pages.yml"
@@ -40,7 +41,7 @@ jobs:
           cp -r tools/web/. _site/
           # .env(키)·.git·테스트는 넣지 않는다. 실행에 필요한 것만 묶는다.
           mkdir -p _pkg/menusearchbot
-          cp -r tools data store run.sh run.bat README.md spec.md Dockerfile _pkg/menusearchbot/
+          cp -r tools data store run.sh run.bat autostart.bat README.md spec.md Dockerfile _pkg/menusearchbot/
           find _pkg -name "__pycache__" -type d -prune -exec rm -rf {} +
           (cd _pkg && zip -qr ../_site/menusearchbot.zip menusearchbot)
           ls -la _site/menusearchbot.zip

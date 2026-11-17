@@ -80,6 +80,12 @@
   .pages-note { max-width: 800px; width: 100%; margin: 16px auto 0; padding: 12px 16px; background: var(--primary-tint);
                 color: #0a2f73; border-radius: 12px; font-size: 14px; line-height: 1.6; }
   .pages-note a { color: var(--primary-dark); font-weight: 700; }
+  .mode { display: flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
+          background: #fff; color: var(--ink2); font-size: 13px; font-weight: 500; cursor: pointer; }
+  .mode i { width: 8px; height: 8px; border-radius: 50%; background: var(--cap); }
+  .mode.ai { border-color: #7fd29a; color: #0a6b2d; } .mode.ai i { background: #1fa04a; }
+  .mode.browser i { background: #8a8d94; }
+  .mode.plain { color: var(--sub); }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   @media (max-width: 560px) { header { padding: 10px 16px; } #chat { padding: 20px 16px; } .me .bubble { max-width: 85%; } }
 </style>
@@ -92,7 +98,10 @@
     </div>
     <div class="title"><b>메뉴찾기</b><span>사내 시스템</span></div>
     <div class="spacer"></div>
+    <button type="button" id="mode" class="mode" title="누르면 AI 서버를 다시 찾습니다"><i></i><span>서버 확인 중…</span></button>
+    <button type="button" id="setserver" class="mode plain">서버 주소</button>
     <span class="count">등록 화면 307 · 인터페이스 317</span>  </header>
+  <div id="hint" class="pages-note" hidden></div>
   <div id="chat"></div>
   <footer>
     <div class="dock">
@@ -203,14 +212,76 @@ async function loadRows() {        // 브라우저 검색 모드용 목록(data.
   return rowsCache;
 }
 
-// GitHub Pages 처럼 검색 서버가 없는 주소에서는 안내와 내려받기 링크를 보여 준다
-if (location.hostname.endsWith("github.io")) {
-  const note = el("div", "pages-note");
-  note.appendChild(el("span", null, "지금은 브라우저 검색 모드입니다(이름·경로·ID로 검색). AI 답변은 내려받은 앱에서 쓸 수 있어요. "));
-  const a = el("a", null, "앱 내려받기"); a.href = "menusearchbot.zip"; a.setAttribute("download", "");
-  note.appendChild(a);
-  chat.before(note);
+// ── 실행 환경 감지: AI 서버(같은 주소 → 저장한 주소 → 내 PC 127.0.0.1:8765)를 찾고, 없으면 브라우저 검색 모드 ──
+const LOCAL = "http://127.0.0.1:8765";
+const ERR = "잠시 후 다시 시도해 주세요";
+const modeBtn = document.getElementById("mode");
+const hint = document.getElementById("hint");
+let apiBase = null;                 // null 이면 브라우저 검색 모드
+let badToken = false;               // 서버는 찾았지만 접속 암호가 없거나 틀림
+
+function savedServer() { try { return localStorage.getItem("serverUrl") || ""; } catch (e) { return ""; } }
+function savedToken() { try { return localStorage.getItem("serverToken") || ""; } catch (e) { return ""; } }
+function authHeaders(base) {          // 접속 암호는 내 PC(127.0.0.1)가 아닌 서버에만 보낸다
+  const h = { "Content-Type": "application/json" };
+  if (base !== LOCAL && savedToken()) h["X-Access-Token"] = savedToken();
+  return h;
 }
+function setMode(m, base) {
+  modeBtn.className = "mode " + (m === "checking" ? "" : m);
+  modeBtn.lastChild.textContent = m === "ai" ? "AI 서버 연결됨" : m === "browser" ? "브라우저 검색 모드" : "서버 확인 중…";
+  modeBtn.title = m === "ai" ? base : "누르면 AI 서버를 다시 찾습니다";
+  hint.hidden = m !== "browser";
+  if (m === "browser" && badToken) {
+    hint.textContent = "서버는 찾았지만 접속 암호가 없거나 맞지 않아 브라우저 검색으로 동작합니다. 「서버 주소」에서 접속 암호를 다시 입력해 주세요.";
+  } else if (m === "browser") {
+    hint.textContent = "AI 서버를 찾지 못해 이름·경로·ID 검색으로 동작합니다. PC에서는 서버를 실행한 뒤 위의 상태 표시를 눌러 다시 찾고, 휴대폰에서는 「서버 주소」를 등록해 주세요. ";
+    if (location.hostname.endsWith("github.io")) {
+      const a = el("a", null, "서버 프로그램 내려받기"); a.href = "menusearchbot.zip"; a.setAttribute("download", "");
+      hint.appendChild(a);
+    }
+  }
+}
+async function alive(base) {
+  const c = new AbortController(); const t = setTimeout(() => c.abort(), 1500);
+  try {
+    const r = await fetch(base + "/api/health", { signal: c.signal, cache: "no-store", headers: authHeaders(base) });
+    if (!r.ok) return false;
+    const j = await r.json();
+    if (j.ok === true && j.authorized === false) { badToken = true; return false; }   // 서버는 있으나 접속 암호가 틀림
+    return j.ok === true;
+  } catch (e) { return false; } finally { clearTimeout(t); }
+}
+async function detect() {
+  setMode("checking"); badToken = false;
+  const bases = [];
+  if (!location.hostname.endsWith("github.io") && location.protocol.startsWith("http")) bases.push(".");
+  if (savedServer()) bases.push(savedServer().replace(/\/+$/, ""));
+  bases.push(LOCAL);
+  for (const b of bases) if (await alive(b)) { apiBase = b; setMode("ai", b); return; }
+  apiBase = null; setMode("browser");
+}
+modeBtn.addEventListener("click", detect);
+document.getElementById("setserver").addEventListener("click", () => {
+  const v = window.prompt("AI 서버 주소를 입력하세요(예: https://example.com). 비워 두면 저장한 주소를 지웁니다.", savedServer());
+  if (v === null) return;
+  const url = v.trim();
+  if (url && !/^https?:\/\//i.test(url)) { window.alert("주소는 http:// 또는 https:// 로 시작해야 합니다."); return; }
+  let tok = "";
+  if (url) {
+    const t = window.prompt("접속 암호(토큰)를 입력하세요. 서버 관리자에게 받은 값입니다. 필요 없으면 비워 두세요.", savedToken());
+    if (t === null) return;
+    tok = t.trim();
+  }
+  try {
+    if (url) localStorage.setItem("serverUrl", url); else localStorage.removeItem("serverUrl");
+    if (tok) localStorage.setItem("serverToken", tok); else localStorage.removeItem("serverToken");
+  } catch (e) {}
+  detect();
+});
+window.addEventListener("focus", () => { if (!apiBase && !busy) detect(); });   // 서버를 켠 뒤 앱으로 돌아오면 다시 찾는다
+detect();
+loadRows().catch(() => {});         // 서버가 꺼져도 바로 검색할 수 있게 목록을 미리 받아 둔다(약 88KB)
 
 async function ask(q) {
   q = q.trim();
@@ -219,24 +290,30 @@ async function ask(q) {
   busy = true; send.disabled = true; input.value = "";
   userBubble(q);
   const wait = loadingBubble();
+  let result = null, errMsg = null;
   try {
-    const res = await fetch("./api/ask", {   // 상대 경로: 서버 루트와 /menusearchbot/ 같은 하위 주소 모두에서 동작
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: q, history: history.slice(-3) }),
-    });
-    if (res.status === 404 || res.status === 405) {   // 검색 서버가 없는 정적 주소(GitHub Pages 등): 브라우저 안에서 검색
-      const rows = await loadRows();
-      const local = MenuSearch.search(q, rows);
-      wait.remove();
-      resultBubble(local); history.push({ question: q, result: local });
-      return;
+    if (apiBase) {
+      try {
+        const res = await fetch(apiBase + "/api/ask", {
+          method: "POST", headers: authHeaders(apiBase),
+          body: JSON.stringify({ question: q, history: history.slice(-3) }),
+        });
+        if (res.status === 401) { badToken = true; throw new Error("auth"); }
+        if (res.status === 404 || res.status === 405) throw new Error("no server");
+        const data = await res.json();
+        if (res.ok) result = data; else errMsg = data.error || ERR;
+      } catch (e) {                 // 서버가 꺼졌거나 닿지 않는다: 브라우저 검색으로 넘어간다
+        apiBase = null; setMode("browser");
+      }
     }
-    const data = await res.json();
+    if (!result && !errMsg) {
+      try { result = MenuSearch.search(q, await loadRows()); } catch (e) { errMsg = ERR; }
+    }
     wait.remove();
-    if (!res.ok) { errorBubble(data.error || "잠시 후 다시 시도해 주세요"); }
-    else { resultBubble(data); history.push({ question: q, result: data }); }
+    if (errMsg) errorBubble(errMsg);
+    else { resultBubble(result); history.push({ question: q, result }); }
   } catch (e) {
-    wait.remove(); errorBubble("잠시 후 다시 시도해 주세요");
+    wait.remove(); errorBubble(ERR);
   } finally {
     busy = false; send.disabled = false; input.focus();
   }

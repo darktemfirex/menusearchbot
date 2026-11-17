@@ -82,6 +82,67 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(body["error"], "잠시 후 다시 시도해 주세요")
         self.assertNotIn("secret-internal-detail", json.dumps(body))
 
+    def _req(self, method, path, origin=None):
+        port = self.httpd.server_address[1]
+        req = urllib.request.Request(f"http://127.0.0.1:{port}{path}", method=method)
+        if origin:
+            req.add_header("Origin", origin)
+        return urllib.request.urlopen(req, timeout=10)
+
+    def test_상태_확인_주소가_ok를_돌려준다(self):
+        r = self._req("GET", "/api/health")
+        self.assertEqual(json.load(r), {"ok": True, "authorized": True})
+
+    def test_허용한_출처에만_접속을_허용한다(self):
+        ok = self._req("GET", "/api/health", origin="https://darktemfirex.github.io")
+        self.assertEqual(ok.headers["Access-Control-Allow-Origin"], "https://darktemfirex.github.io")
+        other = self._req("GET", "/api/health", origin="https://evil.example")
+        self.assertIsNone(other.headers["Access-Control-Allow-Origin"])
+
+    def test_사전확인_OPTIONS는_허용_출처에만_헤더를_준다(self):
+        r = self._req("OPTIONS", "/api/ask", origin="https://darktemfirex.github.io")
+        self.assertEqual(r.status, 204)
+        self.assertEqual(r.headers["Access-Control-Allow-Private-Network"], "true")
+        self.assertIn("POST", r.headers["Access-Control-Allow-Methods"])
+        r2 = self._req("OPTIONS", "/api/ask", origin="https://evil.example")
+        self.assertIsNone(r2.headers["Access-Control-Allow-Origin"])
+
+    def _remote(self, token_server, sent, path="/api/ask"):
+        """터널로 들어온 것처럼 Host 를 바꿔서 보낸다. (상태코드, 본문)"""
+        h = server.make_server(lambda q, history=None: FAKE, port=0, token=token_server)
+        threading.Thread(target=h.serve_forever, daemon=True).start()
+        try:
+            req = urllib.request.Request(f"http://127.0.0.1:{h.server_address[1]}{path}",
+                                         data=json.dumps({"question": "q"}).encode() if path == "/api/ask" else None,
+                                         headers={"Content-Type": "application/json", "Host": "pc.example.ts.net"})
+            if sent:
+                req.add_header("X-Access-Token", sent)
+            try:
+                r = urllib.request.urlopen(req, timeout=10)
+                return r.status, json.load(r)
+            except urllib.error.HTTPError as e:
+                return e.code, json.load(e)
+        finally:
+            h.shutdown()
+            h.server_close()
+
+    def test_터널로_온_요청은_토큰이_맞아야_한다(self):
+        self.assertEqual(self._remote("secret", "secret")[0], 200)
+        self.assertEqual(self._remote("secret", "wrong")[0], 401)
+        self.assertEqual(self._remote("secret", None)[0], 401)
+
+    def test_토큰이_설정되지_않으면_터널_요청은_모두_거절한다(self):
+        self.assertEqual(self._remote(None, None)[0], 401)
+        self.assertEqual(self._remote(None, "")[0], 401)
+
+    def test_내_PC에서_직접_쓰면_토큰이_필요없다(self):
+        status, _ = post(self.httpd, {"question": "q"})
+        self.assertEqual(status, 200)
+
+    def test_상태_확인은_토큰_여부를_알려준다(self):
+        self.assertEqual(self._remote("secret", "secret", "/api/health")[1]["authorized"], True)
+        self.assertEqual(self._remote("secret", "wrong", "/api/health")[1]["authorized"], False)
+
     def test_화면이_열린다(self):
         port = self.httpd.server_address[1]
         r = urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=10)
