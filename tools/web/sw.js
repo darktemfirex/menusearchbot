@@ -1,8 +1,8 @@
 // 서비스 워커: 화면 껍데기(HTML·아이콘)만 캐시한다. 질문(/api/ask)은 캐시하지 않고 항상 서버로 보낸다.
 // 화면을 고쳤으면 아래 VERSION 을 올려서 옛 캐시를 버리게 한다.
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = "menu-finder-" + VERSION;
-const SHELL = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
+const SHELL = ["./", "manifest.webmanifest", "icon-192.png", "icon-512.png"];   // 상대 경로: 서버 루트와 하위 주소 모두에서 동작
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -19,7 +19,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   const url = new URL(req.url);
-  if (req.method !== "GET" || url.origin !== location.origin || url.pathname.startsWith("/api/")) return;
+  if (req.method !== "GET" || url.origin !== location.origin || url.pathname.includes("/api/")) return;
   // 화면은 항상 최신을 먼저 받고, 연결이 없을 때만 캐시를 쓴다
   e.respondWith(
     fetch(req)
@@ -27,6 +27,6 @@ self.addEventListener("fetch", (e) => {
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
         return res;
       })
-      .catch(() => caches.match(req).then((hit) => hit || caches.match("/")))
+      .catch(() => caches.match(req).then((hit) => hit || caches.match("./")))
   );
 });

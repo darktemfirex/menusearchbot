@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>메뉴찾기</title>
 <meta name="theme-color" content="#0066ff">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" type="image/png" href="/icon-192.png">
-<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root {
     --bg: #f7f7f8; --card: #ffffff; --ink: #171719; --ink2: #37383c; --sub: #5a5c63; --cap: #70737c;
@@ -208,10 +208,15 @@ async function ask(q) {
   userBubble(q);
   const wait = loadingBubble();
   try {
-    const res = await fetch("/api/ask", {
+    const res = await fetch("./api/ask", {   // 상대 경로: 서버 루트와 /menusearchbot/ 같은 하위 주소 모두에서 동작
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question: q, history: history.slice(-3) }),
     });
+    if (res.status === 404 || res.status === 405) {   // 검색 서버가 없는 정적 주소(GitHub Pages 등)
+      wait.remove();
+      errorBubble("이 주소에는 검색 서버가 없어 답할 수 없습니다. 서버가 실행 중인 주소에서 이용해 주세요.");
+      return;
+    }
     const data = await res.json();
     wait.remove();
     if (!res.ok) { errorBubble(data.error || "잠시 후 다시 시도해 주세요"); }
@@ -224,7 +229,7 @@ async function ask(q) {
 }
 
 if ("serviceWorker" in navigator) {   // 설치형 웹앱(PWA): HTTPS 또는 localhost 에서만 등록된다
-  window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").catch(() => {}); });
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
 }
 
 form.addEventListener("submit", (ev) => { ev.preventDefault(); ask(input.value); });
