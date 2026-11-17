@@ -3,7 +3,6 @@
 사용:  python3 tools/server.py      → 브라우저가 열린다 (http://127.0.0.1:8765)
 키는 서버 안에서만 쓰고 화면·로그로 내보내지 않는다.
 """
-import hmac
 import http.server
 import json
 import os
@@ -45,9 +44,6 @@ def load_key_or_none():
     return load_env("AXROUTER_API_KEY")
 
 
-LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
-
-
 def startup_problem(key, store_exists):
     """시작할 수 없으면 사용자에게 보일 안내를, 괜찮으면 None 을 돌려준다(키 값은 절대 넣지 않는다)."""
     if not store_exists:
@@ -65,20 +61,8 @@ def bind_address(env):
         return HOST, PORT
 
 
-def make_server(answer_fn, port=PORT, host=HOST, token=None):
-    # 내 PC 전용(127.0.0.1)으로 열었을 때: 터널로 들어온 요청(Host 가 127.0.0.1 이 아닌 것)은 토큰이 있어야 한다.
-    # 토큰이 없으면 터널 요청은 모두 거절한다. 서버 호스팅(PORT 지정, 0.0.0.0)은 이 검사를 쓰지 않는다.
-    enforce = host in LOCAL_HOSTS
-
+def make_server(answer_fn, port=PORT, host=HOST):
     class Handler(http.server.BaseHTTPRequestHandler):
-        def _authorized(self):
-            if not enforce:
-                return True
-            if (self.headers.get("Host") or "").rsplit(":", 1)[0] in LOCAL_HOSTS:
-                return True
-            sent = self.headers.get("X-Access-Token") or ""
-            return bool(token) and hmac.compare_digest(sent.encode(), token.encode())
-
         def _send(self, status, body, ctype="application/json; charset=utf-8"):
             data = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode("utf-8")
             self.send_response(status)
@@ -99,7 +83,7 @@ def make_server(answer_fn, port=PORT, host=HOST, token=None):
             if self.headers.get("Origin") in ALLOWED_ORIGINS:
                 self._cors()
                 self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-                self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Access-Token")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type")
                 self.send_header("Access-Control-Allow-Private-Network", "true")
                 self.send_header("Access-Control-Max-Age", "600")
             self.send_header("Content-Length", "0")
@@ -108,7 +92,7 @@ def make_server(answer_fn, port=PORT, host=HOST, token=None):
         def do_GET(self):
             path = self.path.split("?")[0]
             if path == "/api/health":
-                return self._send(200, {"ok": True, "authorized": self._authorized()})
+                return self._send(200, {"ok": True})
             if path in ("/", "/app.html"):      # 서버로 접속하면 바로 챗봇 화면
                 name = "app.html"
             elif path == "/index.html":         # 설치 전용 안내 화면(Pages 의 첫 화면과 같은 파일)
@@ -125,8 +109,6 @@ def make_server(answer_fn, port=PORT, host=HOST, token=None):
         def do_POST(self):
             if self.path != "/api/ask":
                 return self._send(404, {"error": "not found"})
-            if not self._authorized():
-                return self._send(401, {"error": "접속 암호가 없거나 맞지 않습니다"})
             try:
                 n = int(self.headers.get("Content-Length") or 0)
                 payload = json.loads(self.rfile.read(n) or b"{}")
@@ -161,7 +143,7 @@ def main():
     host, port = bind_address(os.environ)
     background = "--background" in sys.argv  # 로그인 시 자동 시작용: 브라우저를 열지 않는다
     try:
-        httpd = make_server(answer, port=port, host=host, token=load_env("ACCESS_TOKEN"))
+        httpd = make_server(answer, port=port, host=host)
     except OSError:  # 이미 같은 서버가 떠 있다: 새로 띄우지 않고 그 서버를 연다
         if not background and host == HOST:
             webbrowser.open(f"http://{HOST}:{port}/")

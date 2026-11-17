@@ -33,16 +33,6 @@ class UiTests(unittest.TestCase):
         self.assertNotIn('id="examples"', HTML)
         self.assertNotIn("어디에 있나요?", HTML)
 
-    def test_접속_암호_값은_코드에_들어있지_않다(self):
-        token = ""
-        env = os.path.join(LAB, ".env")
-        if os.path.exists(env):
-            for line in open(env, encoding="utf-8"):
-                if line.startswith("ACCESS_TOKEN="):
-                    token = line.split("=", 1)[1].strip()
-        if token:
-            self.assertNotIn(token, HTML)
-
     def test_사용자_글과_AI_글을_HTML로_해석하지_않는다(self):
         self.assertNotIn("innerHTML", HTML)
         self.assertIn("textContent", HTML)
@@ -56,7 +46,7 @@ class UiTests(unittest.TestCase):
             self.assertIn(s, HTML)
 
     def test_서버를_찾고_없으면_브라우저_검색으로_넘어가며_모드를_표시한다(self):
-        for s in ["/api/health", "127.0.0.1:8765", "AI 서버 연결됨", "브라우저 검색 모드", "DEFAULT_SERVER", "serverToken", "MenuSearch.search"]:
+        for s in ["/api/health", "127.0.0.1:8765", "AI 서버 연결됨", "브라우저 검색 모드", "DEFAULT_SERVER", "MenuSearch.search"]:
             self.assertIn(s, HTML)
 
     def test_보라_말풍선과_분홍_점선_보류_카드(self):
